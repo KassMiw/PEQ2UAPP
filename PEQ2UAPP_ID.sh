@@ -80,7 +80,7 @@ for file in *.txt; do
 
     # Parser filter
     f=$(echo "$temp" | sed -n 's/.*Fc \([0-9]*\) Hz.*/\1/p')
-    gain=$(echo "$temp" | sed -n 's/.*Gain \([-0-9.]*\) dB.*/\1/p')
+    g=$(echo "$temp" | sed -n 's/.*Gain \([-0-9.]*\) dB.*/\1/p')
     q=$(echo "$temp" | sed -n 's/.*Q \([0-9.]*\).*/\1/p')
 
     # Kalkulasi Frequency 
@@ -89,8 +89,8 @@ for file in *.txt; do
       sleep 0.1
 
     # Kalkulasi Gain
-    g_norm=$(awk -v g="$gain" 'BEGIN{print (g+20)/40}')
-    echo "ℹ️ Gain: $g → $g_norm"
+    g_norm=$(awk -v g="$g" 'BEGIN{print (g+20)/40}')
+    echo "ℹ️ Gain: $g dB → $g_norm"
       sleep 0.1
 
     # Kalkulasi Q
