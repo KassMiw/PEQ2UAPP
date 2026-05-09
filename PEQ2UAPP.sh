@@ -159,5 +159,5 @@ sleep 3
 
 # Credits
 echo "©️ KProject ©️
-GitHub: @Fearmipan
+GitHub: KassMiw
 Telegram: @KProjectX"
