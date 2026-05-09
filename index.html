@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PEQ2UAPP</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: #1a1a1a;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    p {
+      opacity: 0.85;
+    }
+
+    input[type=file] {
+      width: 100%;
+      margin-top: 20px;
+      margin-bottom: 20px;
+      padding: 12px;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 10px;
+      color: white;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: #00b894;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #00a383;
+    }
+
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+
+    .progress-container {
+      margin-top: 20px;
+      width: 100%;
+      background: #222;
+      border-radius: 999px;
+      overflow: hidden;
+      height: 24px;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #00b894;
+      transition: width 0.2s;
+      text-align: center;
+      line-height: 24px;
+      font-size: 13px;
+      color: white;
+    }
+
+    .log {
+      margin-top: 20px;
+      background: #0d0d0d;
+      padding: 15px;
+      border-radius: 12px;
+      max-height: 350px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-size: 14px;
+      border: 1px solid #222;
+    }
+
+    .credits {
+      text-align: center;
+      margin-top: 25px;
+      opacity: 0.7;
+      font-size: 14px;
+    }
+
+    .support {
+      background: #161616;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      border: 1px solid #2a2a2a;
+    }
+
+    code {
+      background: #222;
+      padding: 2px 5px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+     <h1>PEQ2UAPP</h1>
+    <div class="support">
+      <strong>⚠️ Supported PEQ</strong>
+      <ul>
+        <li>AutoEq PEQ (autoeq.app)</li>
+        <li>SQUIGLINK (squig.link)</li>
+        <li>Crinacle Graph Tool (graph.hangout.audio)</li>
+        <li>Listener's EQ Playground (listener800.github.io)</li>
+      </ul>
+    </div>
+
+    <p>
+      Upload file <code>.txt</code> ParametricEQ lalu converter akan otomatis membuat preset XML ToneBoosters.
+    </p>
+    <button>
+      <label for="fileInput">Upload (support batch)</label>
+      <input type="file" id="fileInput" accept=".txt" multiple hidden>
+    </button>
+   <br>
+   <br>
+    <button id="convertBtn">Convert & Download ZIP</button>
+
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-bar" id="progressBar">0%</div>
+    </div>
+
+    <div class="log" id="log"></div>
+
+    <div class="credits">
+      ©️ KProject<br>
+      GitHub: @KassMiw<br>
+      Telegram: @KProjectX
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const convertBtn = document.getElementById('convertBtn');
+    const logBox = document.getElementById('log');
+    const progressBar = document.getElementById('progressBar');
+    const progressContainer = document.getElementById('progressContainer');
+
+    function log(message) {
+      logBox.textContent += message + "\n";
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function trimFloat(value) {
+      return parseFloat(Number(value).toFixed(6)).toString();
+    }
+
+    function normalizeFreq(freq) {
+      return Math.pow((freq - 16) / (20000 - 16), 1 / 3).toFixed(8);
+    }
+
+    function normalizeGain(gain) {
+      return trimFloat((gain + 20) / 40);
+    }
+
+    function normalizeQ(q) {
+      return Math.pow((q - 0.1) / (10 - 0.1), 1 / 3).toFixed(8);
+    }
+
+    function normalizePreamp(preamp) {
+      return trimFloat((preamp + 20) / 40);
+    }
+
+    function getFilterType(type) {
+      switch (type) {
+        case 'LSC':
+          return '0.071428575';
+        case 'HSC':
+          return '0.2857143';
+        case 'PK':
+        default:
+          return '0.21428572';
+      }
+    }
+
+    function createXML(presetName, preamp, filters) {
+      let xml = '';
+
+      xml += '<?xml version="1.0" encoding="ISO-8859-1"?>\n';
+      xml += '<Preset>\n';
+      xml += `<PresetInfo Name="${presetName}" TenBand="1">\n`;
+
+      for (const filter of filters) {
+        xml += `<Value>${filter.freq}</Value>\n`;
+        xml += `<Value>${filter.gain}</Value>\n`;
+        xml += `<Value>${filter.on}</Value>\n`;
+        xml += `<Value>${filter.q}</Value>\n`;
+        xml += `<Value>${filter.type}</Value>\n`;
+        xml += '<Value>0</Value>\n';
+      }
+
+      xml += '<Value>0</Value>\n';
+      xml += `<Value>${preamp}</Value>\n`;
+      xml += '<Value>1</Value>\n';
+      xml += '<Value>0.33333334</Value>\n';
+      xml += '<Value>0.05</Value>\n';
+      xml += '<Value>0</Value>\n';
+
+      xml += '</PresetInfo>\n';
+      xml += '</Preset>\n';
+
+      return xml;
+    }
+
+    async function processFile(file) {
+      const content = await file.text();
+      const lines = content
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      if (!lines.length || !lines[0].startsWith('Preamp')) {
+        throw new Error(`Invalid ParametricEQ: ${file.name}`);
+      }
+
+      const presetName = file.name.replace(/\.txt$/i, '');
+
+      const preampRaw = parseFloat(lines[0].split(/\s+/)[1]);
+      const preamp = normalizePreamp(preampRaw);
+
+      log(`ℹ️ Processing: ${file.name}`);
+      log(`ℹ️ Preamp: ${preampRaw} dB → ${preamp}`);
+
+      const filters = [];
+
+      for (let i = 0; i < 10; i++) {
+        filters.push({
+          freq: '0.9282573',
+          gain: '0.5',
+          on: '0',
+          q: '0.39434525',
+          type: '0.21428572'
+        });
+      }
+
+      let idx = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+
+        if (!line.includes('ON')) {
+          idx++;
+          continue;
+        }
+
+        if (idx >= 10) break;
+
+        const freqMatch = line.match(/Fc\s+([0-9.]+)\s+Hz/i);
+        const gainMatch = line.match(/Gain\s+([-0-9.]+)\s+dB/i);
+        const qMatch = line.match(/Q\s+([0-9.]+)/i);
+        const typeMatch = line.match(/\b(LSC|HSC|PK)\b/i);
+
+        if (!freqMatch || !gainMatch || !qMatch) {
+          idx++;
+          continue;
+        }
+
+        const freq = parseFloat(freqMatch[1]);
+        const gain = parseFloat(gainMatch[1]);
+        const q = parseFloat(qMatch[1]);
+        const type = typeMatch ? typeMatch[1].toUpperCase() : 'PK';
+
+        const normalizedFreq = normalizeFreq(freq);
+        const normalizedGain = normalizeGain(gain);
+        const normalizedQ = normalizeQ(q);
+        const normalizedType = getFilterType(type);
+
+        log(`ℹ️ Filter type: ${type}`);
+        log(`ℹ️ Frequency: ${freq} Hz → ${normalizedFreq}`);
+        log(`ℹ️ Gain: ${gain} dB → ${normalizedGain}`);
+        log(`ℹ️ Q: ${q} → ${normalizedQ}`);
+
+        filters[idx] = {
+          freq: normalizedFreq,
+          gain: normalizedGain,
+          on: '1',
+          q: normalizedQ,
+          type: normalizedType
+        };
+
+        idx++;
+      }
+
+      const xml = createXML(presetName, preamp, filters);
+
+      log(`✅ ${presetName}.xml selesai dibuat`);
+
+      return {
+        filename: `${presetName}.xml`,
+        xml
+      };
+    }
+
+    convertBtn.addEventListener('click', async () => {
+      const files = [...fileInput.files];
+
+      if (!files.length) {
+        alert('Pilih minimal 1 file TXT');
+        return;
+      }
+
+      convertBtn.disabled = true;
+      logBox.textContent = '';
+      progressContainer.style.display = 'block';
+
+      const zip = new JSZip();
+
+      try {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+
+          const result = await processFile(file);
+
+          zip.file(result.filename, result.xml);
+
+          const progress = Math.round(((i + 1) / files.length) * 100);
+          progressBar.style.width = progress + '%';
+          progressBar.textContent = progress + '%';
+        }
+
+        log('📦 Membuat ZIP...');
+
+        const blob = await zip.generateAsync({ type: 'blob' });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+
+        a.href = url;
+        a.download = 'TBEQPresets.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        URL.revokeObjectURL(url);
+
+        log('✅ ZIP berhasil didownload');
+      } catch (err) {
+        console.error(err);
+        log(`⛔ Error: ${err.message}`);
+        alert(err.message);
+      }
+
+      convertBtn.disabled = false;
+    });
+  </script>
+</body>
+</html>

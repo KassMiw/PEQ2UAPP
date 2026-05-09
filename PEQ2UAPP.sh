@@ -67,6 +67,7 @@ for file in *.txt; do
     GAIN[$i]="0.5"
     ON[$i]=0
     Q[$i]="0.39434525"
+    TYPE[$i]="0.21428572"
   done
 
   # Cek filter on/off
@@ -82,6 +83,18 @@ for file in *.txt; do
     f=$(echo "$temp" | sed -n 's/.*Fc \([0-9]*\) Hz.*/\1/p')
     g=$(echo "$temp" | sed -n 's/.*Gain \([-0-9.]*\) dB.*/\1/p')
     q=$(echo "$temp" | sed -n 's/.*Q \([0-9.]*\).*/\1/p')
+
+    # Filter type
+    t=$(echo "$temp" | grep -oE "LSC|HSC|PK")
+     if [ "$t" == "LSC" ]; then
+      f_type="0.071428575"
+     elif [ "$t" == "HSC" ]; then
+      f_tyoe="0.2857143"
+     elif [ "$t" == "PK" ]; then
+      f_type="0.21428572"
+     fi
+     echo "ℹ️ Filter type: $t"
+      sleep 0.1
 
     # Kalkulasi Frequency 
     f_norm=$(awk -v f="$f" 'BEGIN{printf "%.8f", ((f-16)/(20000-16))^(1/3)}')
@@ -103,7 +116,7 @@ for file in *.txt; do
     GAIN[$idx]="$(trim_float "$g_norm")"
     Q[$idx]="$q_norm"
     ON[$idx]=1
-
+    TYPE[$idx]="$f_type"
     ((idx++))
   done
 
@@ -122,7 +135,7 @@ for file in *.txt; do
       echo "<Value>${GAIN[$i]}</Value>"
       echo "<Value>${ON[$i]}</Value>"
       echo "<Value>${Q[$i]}</Value>"
-      echo "<Value>0.21428572</Value>"
+      echo "<value>${TYPE[$i]}</Value>"
       echo "<Value>0</Value>"
     done
 
