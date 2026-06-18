@@ -135,7 +135,7 @@ for file in *.txt; do
       echo "<Value>${GAIN[$i]}</Value>"
       echo "<Value>${ON[$i]}</Value>"
       echo "<Value>${Q[$i]}</Value>"
-      echo "<value>${TYPE[$i]}</Value>"
+      echo "<Value>${TYPE[$i]}</Value>"
       echo "<Value>0</Value>"
     done
 
